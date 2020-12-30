@@ -39,9 +39,19 @@ double f(int k, int n, int i, int j)  // i,j = 1, ..., n (NOT from 0!)
         case 1:
             return n - ((i<j)?j:i) + 1;
         case 2:
-            return (i<j)?j:i;
+            if (i == j)
+                return 2;
+            if (i - j == 1 || j - i == 1)
+                return -1;
+            return 0;
         case 3:
-            return (i<j)?(j-i):(i-j);
+            if (i == j && i<n)
+                return 1;
+            if (i == n)
+                return j;
+            if (j == n)
+                return i;
+            return 0;
         case 4:
             return 1./(i+j-1);
     }
@@ -81,22 +91,15 @@ int fillMatrix (double *array, double *array_copy, int n, int k, std::string fil
 
 
 
-int reflect (int n, double *array)
+int reflect (int n, double *array, double *x, double *z)
 {
-    /*double *tr_array = new (std::nothrow) double[n*n];
-    for (int i=0; i<n; i++)
-    {
-        for (int j=0; j<n; j++)
-        {
-            tr_array[i*n+j] = array[j*n+i];
-        }
-    }*/
 
-    double *x = new (std::nothrow) double[n];
-    double *z = new (std::nothrow) double[n];
+    //double *x = new (std::nothrow) double[n];
+    //double *z = new (std::nothrow) double[n];
 
     for (int index=0; index < n-2; index++)
     {
+        double epsilon = 1e-16;
         // сначала вычисляем вектор х, по которому строится матрица отражений 
         // 
         // array [(index+1)*n +index]
@@ -111,9 +114,16 @@ int reflect (int n, double *array)
         {
             s += array[i*n + index]*array[i*n + index];
         }
-        if (s == 0)
+        if (std::abs(s) <= epsilon)
+        {
+            if (array[(index+1)*n +index] < 0)
+            {
+                array[(index+1)*n +index] = - array[(index+1)*n +index];
+                array[index*n + index+1] = - array[index*n + index+1];
+            }
             continue;
-        norm_a = sqrt (array[(index+1)*n +index] * array[(index+1)*n +index] + s);
+        }
+        norm_a = sqrt ((array[(index+1)*n +index] * array[(index+1)*n +index]) + s);
 
         x[index+1] = array[(index+1)*n +index] - norm_a;
         for (int i = index+2; i<n; i++)
@@ -127,6 +137,12 @@ int reflect (int n, double *array)
         {
             x[i] /= norm_x;
         }
+
+
+        /*if (index < 4)
+        {
+            std::cout << "IN REFLECT  " << index << "  " << s << "  " << norm_a << "  " << norm_x << "\n";
+        }*/
 
         // остается перемножить U*A*U, где U=U(x), а A:
         // array[(index+1)*n + index+1]    ...   array[(index+1)*n + n-1]
@@ -173,57 +189,122 @@ int reflect (int n, double *array)
 
     }
 
-    delete[] x;
-    delete[] z;
+    //delete[] x;
+    //delete[] z;
     return 0;
 }
 
 
 int n_(int n, double *array, double alpha)
 {
-    std::cout << "PASSED alpha:" << alpha << "\n";
+    double epsilon = 1e-16;
+    //std::cout << "PASSED alpha:" << alpha << "\n";
     int count = 0;
     double l1, l2; 
     l1 = array[0] - alpha;
-    std::cout << "PASSED l1:" << l1 << "\n";
+    //std::cout << "PASSED l1:" << l1 << "\n";
     if (l1 < 0)
         count++;
     for (int k=1; k<n; k++)
     {
+        if (std::abs(l1) < epsilon)
+            return -5;
         l2 = (array[k*n + k] - alpha) - array[k*n + k-1] * (array[(k-1)*n + k]/l1);
         if (l2 < 0)
             count++;
         l1 = l2;
-        std::cout << "PASSED l1:" << l1 << "\n";
+        //std::cout << "PASSED l1:" << l1 << "\n";
     }
 
     return count;
 }
 
 
-
+/*
 void recur (int n, double *array, double eps, double *spector, int *index, double a, double b)
 {
+    double epsilon = 1e-16;
+    
     if ( n_(n, array, b)-n_(n, array, a) > 0 )
     {
         if (b-a < eps)
         {
+            std::cout << "HERE\n";
             for (int i=0; i < (n_(n, array, b)-n_(n, array, a)); i++)
             {
+                //std::cout << "PASSED";
+                //fflush(stdout);
                 //std::cout << "PASSED: " << *index << "\n" << "a + b = " << (a+b)/2 << " a = " << a << " b = "<< b << "\n";
                 //std::cout << (n_(n, array, b)-n_(n, array, a)) << "\n";
+                
                 spector[*index] = (a+b)/2;
                 (*index)++;
-                //std::cout << *index << "\n";
+                std::cout << *index << "\n";
             }
         }
         else
         {
-            recur (n, array, eps, spector, index, a, (a+b)/2);
-            recur (n, array, eps, spector, index, (a+b)/2, b);
+            double p = (a+b)/2;
+            while (n_(n, array, p) == -5)
+            {
+                p += epsilon;//*(b-a);
+                //std::cout <<  "HERE\n";
+            }
+            //std::cout << "FUCK1\n";
+            recur (n, array, eps, spector, index, a, p);
+            std::cout << "FUCK2\n";
+            recur (n, array, eps, spector, index, p, b);
+            //recur (n, array, eps, spector, index, a, p);
         }
     }
+}*/
+
+
+void recur (int n, double *array, double eps, double *spector, int *index, double a, double b)
+{
+    double epsilon = 1e-14;
+    //std::cout << "PASSED: " << *index << "\n" << " a = " << a << " b = "<< b << "\n";
+    //std::cout << (n_(n, array, b)-n_(n, array, a)) << "\n";
+    if ( n_(n, array, b)-n_(n, array, a) > 0 )
+    {
+        std::cout.precision(30);
+        std::cout << "PASSED: " << *index << "\n" << " a = " << a << " b = "<< b << "\n";
+        //std::cout << "PASSED\n";
+        if (b-a > eps)
+        {
+            //std::cout << "PASSED\n";
+            double p = (a+b)/2;
+            std::cout << "PASSED:   " << p << "\n";
+            while (n_(n, array, p) == -5)
+            {
+                p += epsilon;
+            }
+            //std::cout << "PASSED:   " << p << "\n";
+            recur (n, array, eps, spector, index, a, p);
+            recur (n, array, eps, spector, index, p, b);
+        }
+        else
+        {
+            for (int i=0; i < (n_(n, array, b)-n_(n, array, a)); i++)
+            {
+                spector[*index] = (a+b)/2;
+                (*index)++;
+                //std::cout << *index << "\n";
+                //std::cout.precision(30);
+                //std::cout << "PASSED: " << *index << "\n(a + b)/2 = " << (a+b)/2. << " a = " << a << " b = "<< b << "\n";
+                //double p = (a+b);
+                //std::cout << p << "\n";
+                //std::cout << p/2. << "\n";
+            }
+        }
+    }
+
+
 }
+
+
+
+
 
 
 

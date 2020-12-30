@@ -8,7 +8,7 @@ double euclidNorm (const int n, double *x);
 double matrixNorm (const int n, double *array);
 double f(int k, int n, int i, int j);
 
-int reflect (int n, double *array);
+int reflect (int n, double *array, double *x, double *z);
 int n_(int n, double *array, double alpha);  // n_(a)==S(A-alpha*E)
 void recur (int n, double *array, double eps, double *spector, int *index, double a, double b);
 

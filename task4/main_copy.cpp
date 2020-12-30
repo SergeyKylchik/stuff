@@ -85,17 +85,32 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    double *x = new (std::nothrow) double[n];  // additional memory for algorithm
+    if(!x)
+    {
+        std::cout << "Couldn't allocate memory for array_copy\n";
+        delete[] array, spector, array_copy;
+        return -1;
+    }
+
+    double *z = new (std::nothrow) double[n];  // additional memory for algorithm
+    if(!z)
+    {
+        std::cout << "Couldn't allocate memory for array_copy\n";
+        delete[] array, spector, array_copy, x;
+        return -1;
+    }
     /////  memory allocation done
 
     switch (fillMatrix(array, array_copy, n, k, filename))
     {
         case -2:
             std::cout << "File cannot be opened\n";
-            delete[] array, spector, array_copy;
+            delete[] array, spector, array_copy, x, z;
             return -2;
         case -3:
             std::cout << "File cannot be read / data is invalid\n";
-            delete[] array, spector, array_copy;
+            delete[] array, spector, array_copy, x, z;
             return -3;
     }
 
@@ -106,25 +121,26 @@ int main(int argc, char *argv[])
     double time;
     time = std::clock ();
 
-    if (solve (n, array, spector, eps) == -4)
+    if (solve (n, array, spector, eps, x, z) == -4)
     {
         std::cout << "Matrix is not symmetric\n";
-        delete[] array, spector, array_copy;
+        delete[] array, spector, array_copy, x, z;
         return -4;
     }
 
     time = (std::clock () - time) / (double) CLOCKS_PER_SEC;
     std::cout << "Total time for solving: " << time << "\n";
 
-    //std::cout << "Matrix spector:\n";
-    //print (spector, 1, n, m);
+    std::cout << "Matrix spector:\n";
+    print (spector, 1, n, m);
 
-    //std::cout << "Error #1: " << error1 (n, array_copy, spector) << "\n";
-    //std::cout << "Error #2: " << error2 (n, array_copy, spector) << "\n";
+    std::cout << "Error #1: " << error1 (n, array_copy, spector) << "\n";
+    std::cout << "Error #2: " << error2 (n, array_copy, spector) << "\n";
 
     delete[] array;
     delete[] array_copy;
     delete[] spector;
+    delete[] x, z;
 
     return 0;
 }
